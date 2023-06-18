@@ -1,8 +1,8 @@
+import sqlite3
 from typing import Dict
 
 import pandas as pd
 import requests
-from sqlalchemy import create_engine
 
 
 def extract(url: str) -> Dict:
@@ -35,11 +35,29 @@ def transform(data: Dict) -> pd.DataFrame:
 def load(data_frame: pd.DataFrame) -> None:
     """
     Load transformed data into a SQLite database
-
     :param data_frame: the transformed data to be loaded
     """
-    disk_engine = create_engine("sqlite:///my_sqlite.db")
-    data_frame.to_sql("california_universities", disk_engine, if_exists=True)
+    conn = sqlite3.connect("my_db.db")
+    cursor = conn.cursor()
+
+    create_table_query = """ 
+        CREATE TABLE IF NOT EXISTS california_universities ( 
+            domains TEXT, 
+            country TEXT,
+            web_pages TEXT,
+            name TEXT
+    )
+    """
+    cursor.execute(create_table_query)
+
+    insert_query = "INSERT INTO california_universities \
+    (domains, country, web_pages, name) VALUES(?, ?, ?, ?)"
+    values = data_frame.values.tolist()
+
+    cursor.executemany(insert_query, values)
+
+    conn.commit()
+    conn.close()
 
 
 def main() -> None:
